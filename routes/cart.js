@@ -1,0 +1,86 @@
+import express from 'express';
+import auth from '../middleware/auth.js';
+import Cart from '../models/Cart.js';
+
+const router = express.Router();
+
+// Get user's cart
+router.get('/', auth, async (req, res) => {
+  try {
+    let cart = await Cart.findOne({ userId: req.user.id }).populate({
+      path: 'items.productId',
+      select: 'image',
+    });
+    if (!cart) {
+      cart = new Cart({ userId: req.user.id, items: [] });
+      await cart.save();
+    }
+    // Attach image to each item for frontend
+    const itemsWithImage = cart.items.map(item => ({
+      ...item.toObject(),
+      image: item.productId && item.productId.image ? item.productId.image : null
+    }));
+    res.json({ ...cart.toObject(), items: itemsWithImage });
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching cart' });
+  }
+});
+
+// Add item to cart
+router.post('/add', auth, async (req, res) => {
+  try {
+    const { productId, name, price, quantity } = req.body;
+    let cart = await Cart.findOne({ userId: req.user.id });
+    if (!cart) {
+      cart = new Cart({ userId: req.user.id, items: [] });
+    }
+    const itemIndex = cart.items.findIndex((item) => item.productId.toString() === productId);
+    if (itemIndex > -1) {
+      cart.items[itemIndex].quantity += quantity;
+    } else {
+      cart.items.push({ productId, name, price, quantity });
+    }
+    await cart.save();
+    res.json(cart);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to add item to cart' });
+  }
+});
+
+// Update item quantity
+router.put('/update', auth, async (req, res) => {
+  try {
+    const { productId, quantity } = req.body;
+    const cart = await Cart.findOne({ userId: req.user.id });
+    if (!cart) return res.status(404).json({ error: 'Cart not found' });
+    const itemIndex = cart.items.findIndex((item) => item.productId.toString() === productId);
+    if (itemIndex > -1) {
+      if (quantity < 1) {
+        cart.items.splice(itemIndex, 1);
+      } else {
+        cart.items[itemIndex].quantity = quantity;
+      }
+      await cart.save();
+      res.json(cart);
+    } else {
+      res.status(404).json({ error: 'Item not found in cart' });
+    }
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to update cart' });
+  }
+});
+
+// Remove item from cart
+router.delete('/remove/:productId', auth, async (req, res) => {
+  try {
+    const cart = await Cart.findOne({ userId: req.user.id });
+    if (!cart) return res.status(404).json({ error: 'Cart not found' });
+    cart.items = cart.items.filter((item) => item.productId.toString() !== req.params.productId);
+    await cart.save();
+    res.json(cart);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to remove item' });
+  }
+});
+
+export default router;
