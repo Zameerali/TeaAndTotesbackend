@@ -4,6 +4,21 @@ import Cart from '../models/Cart.js';
 
 const router = express.Router();
 
+// Helper to attach image to each item, handling missing products
+function mapItemsWithImage(items) {
+  return items.map(item => {
+    // item.productId may be null if product was deleted
+    let image = null;
+    if (item.productId && typeof item.productId === 'object' && 'image' in item.productId) {
+      image = item.productId.image;
+    }
+    return {
+      ...item.toObject(),
+      image,
+    };
+  });
+}
+
 // Get user's cart
 router.get('/', auth, async (req, res) => {
   try {
@@ -15,16 +30,14 @@ router.get('/', auth, async (req, res) => {
       cart = new Cart({ userId: req.user.id, items: [] });
       await cart.save();
     }
-    // Attach image to each item for frontend
-    const itemsWithImage = cart.items.map(item => ({
-      ...item.toObject(),
-      image: item.productId && item.productId.image ? item.productId.image : null
-    }));
+    const itemsWithImage = mapItemsWithImage(cart.items);
     res.json({ ...cart.toObject(), items: itemsWithImage });
   } catch (err) {
     res.status(500).json({ error: 'Error fetching cart' });
   }
 });
+
+// ...existing code...
 
 // Add item to cart
 router.post('/add', auth, async (req, res) => {
@@ -41,11 +54,13 @@ router.post('/add', auth, async (req, res) => {
       cart.items.push({ productId, name, price, quantity });
     }
     await cart.save();
-    // Populate images for the response
-    await cart.populate({ path: 'items.productId', select: 'image' });
+    // Populate product fields for the response
+    await cart.populate({ path: 'items.productId', select: 'image name price' });
     const itemsWithImage = cart.items.map(item => ({
       ...item.toObject(),
-      image: item.productId && item.productId.image ? item.productId.image : null
+      image: item.productId && item.productId.image ? item.productId.image : null,
+      name: item.productId && item.productId.name ? item.productId.name : item.name,
+      price: item.productId && item.productId.price ? item.productId.price : item.price,
     }));
     res.json({ ...cart.toObject(), items: itemsWithImage });
   } catch (err) {
@@ -67,10 +82,12 @@ router.put('/update', auth, async (req, res) => {
         cart.items[itemIndex].quantity = quantity;
       }
       await cart.save();
-      await cart.populate({ path: 'items.productId', select: 'image' });
+      await cart.populate({ path: 'items.productId', select: 'image name price' });
       const itemsWithImage = cart.items.map(item => ({
         ...item.toObject(),
-        image: item.productId && item.productId.image ? item.productId.image : null
+        image: item.productId && item.productId.image ? item.productId.image : null,
+        name: item.productId && item.productId.name ? item.productId.name : item.name,
+        price: item.productId && item.productId.price ? item.productId.price : item.price,
       }));
       res.json({ ...cart.toObject(), items: itemsWithImage });
     } else {
@@ -88,10 +105,12 @@ router.delete('/remove/:productId', auth, async (req, res) => {
     if (!cart) return res.status(404).json({ error: 'Cart not found' });
     cart.items = cart.items.filter((item) => item.productId.toString() !== req.params.productId);
     await cart.save();
-    await cart.populate({ path: 'items.productId', select: 'image' });
+    await cart.populate({ path: 'items.productId', select: 'image name price' });
     const itemsWithImage = cart.items.map(item => ({
       ...item.toObject(),
-      image: item.productId && item.productId.image ? item.productId.image : null
+      image: item.productId && item.productId.image ? item.productId.image : null,
+      name: item.productId && item.productId.name ? item.productId.name : item.name,
+      price: item.productId && item.productId.price ? item.productId.price : item.price,
     }));
     res.json({ ...cart.toObject(), items: itemsWithImage });
   } catch (err) {
@@ -99,4 +118,5 @@ router.delete('/remove/:productId', auth, async (req, res) => {
   }
 });
 
+// ...existing code...
 export default router;
