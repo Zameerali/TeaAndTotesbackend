@@ -16,7 +16,11 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://tea-and-totes.vercel.app/'], // Update with Vercel URL
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:4173', // <-- add this line
+    'https://tea-and-totes.vercel.app'
+  ],
   credentials: true,
 }));
 app.use(express.json());
