@@ -41,7 +41,13 @@ router.post('/add', auth, async (req, res) => {
       cart.items.push({ productId, name, price, quantity });
     }
     await cart.save();
-    res.json(cart);
+    // Populate images for the response
+    await cart.populate({ path: 'items.productId', select: 'image' });
+    const itemsWithImage = cart.items.map(item => ({
+      ...item.toObject(),
+      image: item.productId && item.productId.image ? item.productId.image : null
+    }));
+    res.json({ ...cart.toObject(), items: itemsWithImage });
   } catch (err) {
     res.status(400).json({ error: 'Failed to add item to cart' });
   }
@@ -61,7 +67,12 @@ router.put('/update', auth, async (req, res) => {
         cart.items[itemIndex].quantity = quantity;
       }
       await cart.save();
-      res.json(cart);
+      await cart.populate({ path: 'items.productId', select: 'image' });
+      const itemsWithImage = cart.items.map(item => ({
+        ...item.toObject(),
+        image: item.productId && item.productId.image ? item.productId.image : null
+      }));
+      res.json({ ...cart.toObject(), items: itemsWithImage });
     } else {
       res.status(404).json({ error: 'Item not found in cart' });
     }
@@ -77,7 +88,12 @@ router.delete('/remove/:productId', auth, async (req, res) => {
     if (!cart) return res.status(404).json({ error: 'Cart not found' });
     cart.items = cart.items.filter((item) => item.productId.toString() !== req.params.productId);
     await cart.save();
-    res.json(cart);
+    await cart.populate({ path: 'items.productId', select: 'image' });
+    const itemsWithImage = cart.items.map(item => ({
+      ...item.toObject(),
+      image: item.productId && item.productId.image ? item.productId.image : null
+    }));
+    res.json({ ...cart.toObject(), items: itemsWithImage });
   } catch (err) {
     res.status(400).json({ error: 'Failed to remove item' });
   }
