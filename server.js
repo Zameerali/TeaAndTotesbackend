@@ -1,33 +1,33 @@
+import dotenv from 'dotenv';
+dotenv.config(); // Railway uses dashboard variables
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';
-import productRoutes from './routes/products.js';
-import orderRoutes from './routes/orders.js';
 import adminRoutes from './routes/admin.js';
-import cartRoutes from './routes/cart.js';
-import imageRoutes from './routes/images.js';
-import { connectDB } from './config/db.js';
+import productRoutes from './routes/products.js';
 
+mongoose.set('strictQuery', true); // From prior conversation
+
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.error('MongoDB error:', err));
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
-// Middleware
-app.use(cors());
+
 app.use(cors({
-  origin: ['http://localhost:5173'], // Update with Netlify URL
+  origin: ['http://localhost:5173', 'https://tea-and-totes.vercel.app/'], // Update with Vercel URL
   credentials: true,
 }));
 app.use(express.json());
-
-// Connect to MongoDB
-connectDB();
-
-// Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/images', imageRoutes);
+app.use('/api/products', productRoutes);
+
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/api/admin/env', (req, res) => {
+  res.json({ mongoUri: process.env.MONGO_URI, jwtSecret: process.env.JWT_SECRET, port: process.env.PORT });
+});
+
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
