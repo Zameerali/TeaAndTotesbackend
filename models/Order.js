@@ -13,6 +13,7 @@ const orderSchema = new mongoose.Schema({
   receipt: { type: mongoose.Schema.Types.ObjectId, ref: 'fs.files' }, // Reference to GridFS file
   status: { type: String, default: 'Pending' },
   createdAt: { type: Date, default: Date.now },
+  contactNumber: { type: String, required: true },
 });
 
 export default mongoose.model('Order', orderSchema);

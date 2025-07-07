@@ -19,8 +19,8 @@ router.post('/', auth, upload.single('receipt'), async (req, res) => {
     console.log('POST /api/orders called');
     console.log('req.body:', req.body);
     console.log('req.file:', req.file);
-    const { items, total, shippingAddress } = req.body;
-    if (!items || !total || !shippingAddress) {
+    const { items, total, shippingAddress, contactNumber } = req.body;
+    if (!items || !total || !shippingAddress || !contactNumber) {
       return res.status(400).json({ error: 'All fields are required' });
     }
     let parsedItems;
@@ -34,6 +34,7 @@ router.post('/', auth, upload.single('receipt'), async (req, res) => {
       items: parsedItems,
       total,
       shippingAddress,
+      contactNumber,
       receipt: req.file ? req.file.id : undefined,
     });
     await order.save();

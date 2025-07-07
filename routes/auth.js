@@ -7,12 +7,13 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, contactNumber, role } = req.body;
+    if (!contactNumber) return res.status(400).json({ error: 'Contact number is required' });
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hashedPassword, role: role || 'user' });
+    const user = new User({ name, email, password: hashedPassword, contactNumber, role: role || 'user' });
     await user.save();
     const token = jwt.sign({ id: user._id, email: user.email, name: user.name, role: user.role }, process.env.JWT_SECRET);
-    res.json({ user: { _id: user._id, name: user.name, email: user.email, role: user.role }, token });
+    res.json({ user: { _id: user._id, name: user.name, email: user.email, contactNumber: user.contactNumber, role: user.role }, token });
   } catch (err) {
     res.status(400).json({ error: 'Registration failed' });
   }
